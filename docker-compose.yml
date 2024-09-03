@@ -1,0 +1,51 @@
+services:
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: socket-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - CONTAINERS=1
+      - POST=1
+      - BUILD=1
+      - IMAGES=1
+      - VOLUMES=1
+      - NETWORKS=1
+      - EXEC=1
+      - AUTH=1
+      - INFO=1 
+    ports:
+      - 2375
+    restart: always
+  
+  jenkins:
+    build:
+      context: .
+      dockerfile: ltscustomjenkins/Dockerfile 
+    container_name: jenkins
+    ports:
+      - 8080:8080
+      - 50000:50000
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    environment:
+      - DOCKER_HOST=tcp://socket-proxy:2375
+      # - DOCKER_REGISTRY=registry:5000
+    depends_on:
+      - socket-proxy
+      - registry
+    restart: always
+
+  registry:
+    image: registry:2
+    container_name: docker-registry
+    ports:
+      - "5000:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+    environment:
+      - REGISTRY_HTTP_ADDR=0.0.0.0:5000
+
+volumes:
+  jenkins_home:
+  registry_data:
